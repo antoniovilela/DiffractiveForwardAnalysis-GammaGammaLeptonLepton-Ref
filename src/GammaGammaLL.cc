@@ -117,7 +117,8 @@ GammaGammaLL::GammaGammaLL(const edm::ParameterSet& iConfig)
     helper420a220beam1.Init(*f, "a420a220");
     helper420a220beam2.Init(*f, "a420a220_b2");
 
-    LumiWeights = new edm::LumiReWeighting(mcPileupFile_, dataPileupFile_, mcPileupPath_, dataPileupPath_);
+    if(mcPileupFile_ != "" && dataPileupFile_ != "")
+       LumiWeights = new edm::LumiReWeighting(mcPileupFile_, dataPileupFile_, mcPileupPath_, dataPileupPath_);
   }
 
 }
@@ -276,11 +277,12 @@ GammaGammaLL::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   EventNum = iEvent.id().event();
   
   // High level trigger information retrieval  
-  LookAtTriggers(iEvent, iSetup);
+  if( hltMenuLabel_ != "NOHLT" ) LookAtTriggers(iEvent, iSetup);
   
   // beam spot information
-  iEvent.getByLabel(beamSpotLabel_, beamspot_h);
-  const reco::BeamSpot &beamSpot = *(beamspot_h.product());
+  //FIXME beamSpot not used    
+  /*iEvent.getByLabel(beamSpotLabel_, beamspot_h);
+  const reco::BeamSpot &beamSpot = *(beamspot_h.product());*/
 
   // Get the vertex collection from the event
   iEvent.getByLabel(recoVertexLabel_, recoVertexColl);
@@ -426,7 +428,10 @@ GammaGammaLL::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     //
     
     const edm::EventBase* iEventB = dynamic_cast<const edm::EventBase*>(&iEvent);
-    Weight = LumiWeights->weight(*iEventB);
+    if(mcPileupFile_ != "" && dataPileupFile_ != "")
+       Weight = LumiWeights->weight(*iEventB);
+    else 
+       Weight = -1;
   }
   
   //std::cout << "Passed Pileup" << std::endl;
@@ -491,14 +496,15 @@ GammaGammaLL::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     // RECO electrons
     iEvent.getByLabel(InputTag("gsfElectrons"), eleCollRECO);
     // iso deposits
-    IsoDepositVals isoVals(isoValLabel_.size());
+    //FIXME    
+    //IsoDepositVals isoVals(isoValLabel_.size());
+    //for (size_t j = 0; j<isoValLabel_.size(); j++) { 
+    //  iEvent.getByLabel(isoValLabel_[j], isoVals[j]); 
+    //}
+
     // New 2012 electron ID variables conversions
     iEvent.getByLabel(conversionsLabel_, conversions_h);
 
-    for (size_t j = 0; j<isoValLabel_.size(); j++) { 
-      iEvent.getByLabel(isoValLabel_[j], isoVals[j]); 
-    }
-        
     for (electron=eleColl->begin(); electron!=eleColl->end() && nEleCand<MAX_ELE; electron++) {
       EleCand_e[nEleCand] = electron->energy();
       EleCand_et[nEleCand] = electron->et();
@@ -542,8 +548,9 @@ GammaGammaLL::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       EleCand_mediumID[nEleCand] = 0;
       EleCand_looseID[nEleCand] = 0;
       bool select = false;
-      bool selectmedium = false;
-      bool selectloose = false;
+      //FIXME EgammaAnalysis/ElectronTools not available in CMSSW_6_2_X
+      //bool selectmedium = false;
+      //bool selectloose = false;
       if (electron->ecalDrivenSeed()==1)  select = true;
       if (EleCand_convDist[nEleCand]>=MIN_Dist or EleCand_convDcot[nEleCand]>=MIN_Dcot) select = true;
       if (electron->gsfTrack()->trackerExpectedHitsInner().numberOfHits()<=MAX_MissingHits) select = true;
@@ -570,18 +577,31 @@ GammaGammaLL::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       if(select) EleCand_wp80[nEleCand] = 1;
       
       // get reference to RECO electron
-      reco::GsfElectronRef ele(eleCollRECO, nEleCand);
+      //FIXME   
+      /*reco::GsfElectronRef ele(eleCollRECO, nEleCand);
       
       iso_ch =  (*(isoVals)[0])[ele];
       iso_em = (*(isoVals)[1])[ele];
-      iso_nh = (*(isoVals)[2])[ele];
+      iso_nh = (*(isoVals)[2])[ele];*/
+      
+      iso_ch = -1;
+      iso_em = -1;
+      iso_nh = -1;
+      reco::PFCandidateRef pfCandRef = electron->pfCandidateRef();
+      reco::GsfElectronRef gsfElectronRef = pfCandRef->gsfElectronRef();
+      iso_ch = gsfElectronRef->pfIsolationVariables().chargedHadronIso;
+      iso_em = gsfElectronRef->pfIsolationVariables().photonIso;
+      iso_nh = gsfElectronRef->pfIsolationVariables().neutralHadronIso;
 
-      if(PassTriggerCuts(EgammaCutBasedEleId::TRIGGERTIGHT, ele) == true) {
+      //FIXME EgammaAnalysis/ElectronTools not available in CMSSW_6_2_X
+      /*if(PassTriggerCuts(EgammaCutBasedEleId::TRIGGERTIGHT, ele) == true) {
         selectmedium = EgammaCutBasedEleId::PassWP(EgammaCutBasedEleId::MEDIUM, ele, conversions_h, beamSpot, recoVertexColl, iso_ch, iso_em, iso_nh, rhoIso, ElectronEffectiveArea::kEleEAData2012);
         selectloose = EgammaCutBasedEleId::PassWP(EgammaCutBasedEleId::LOOSE, ele, conversions_h, beamSpot, recoVertexColl, iso_ch, iso_em, iso_nh, rhoIso, ElectronEffectiveArea::kEleEAData2012);
       }
       if(selectmedium) EleCand_mediumID[nEleCand] = 1;
-      if(selectloose) EleCand_looseID[nEleCand] = 1;
+      if(selectloose) EleCand_looseID[nEleCand] = 1;*/
+      EleCand_mediumID[nEleCand] = -1;
+      EleCand_looseID[nEleCand]  = -1;
       
       nEleCand++;
     }
@@ -637,7 +657,6 @@ GammaGammaLL::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   }
   //std::cout << "Passed PF photons" << std::endl;
 
-  vtxind = 0;
   if (nLeptonCand>=2) {
     // Enough leptons candidates to go deeper and analyze the primary vertices
     
@@ -646,7 +665,7 @@ GammaGammaLL::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     etind = 0;
     nPrimVertexCand = vertices->size();
 
-    for (vertex=vertices->begin(); vertex!=vertices->end() && vtxind<MAX_VTX; ++vertex, ++vtxind) {
+    for (vertex=vertices->begin(), vtxind = 0; vertex!=vertices->end() && vtxind<MAX_VTX; ++vertex, ++vtxind) {
       PrimaryVertex *_vtx;
       Int_t leptonId_;
 
@@ -1226,6 +1245,9 @@ GammaGammaLL::endJob()
 void 
 GammaGammaLL::beginRun(edm::Run const& iRun, edm::EventSetup const& iSetup)
 {
+
+  if( hltMenuLabel_ == "NOHLT" ) return;
+ 
   bool changed;
   std::string triggerName_;
   

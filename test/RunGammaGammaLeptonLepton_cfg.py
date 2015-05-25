@@ -2,14 +2,15 @@ import FWCore.ParameterSet.Config as cms
 
 process = cms.Process("ggll")
 
-runOnMC = False
+runOnMC = True
 
 #########################
 #    General options    #
 #########################
 process.load("FWCore.MessageService.MessageLogger_cfi")
 process.options   = cms.untracked.PSet(
-    #wantSummary = cms.untracked.bool(True),
+    allowUnscheduled = cms.untracked.bool(True), # For PAT
+    wantSummary = cms.untracked.bool(True),
     SkipEvent = cms.untracked.vstring('ProductNotFound')
 )
 
@@ -22,9 +23,10 @@ process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
 #########################
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
-      '/store/data/Run2012A/SingleMu/AOD/22Jan2013-v1/20000/002F5062-346F-E211-BF00-1CC1DE04DF20.root',
-    ),
-    firstEvent = cms.untracked.uint32(540)
+      #'file:/afs/cern.ch/work/a/antoniov/Workspace/Analysis/PPS/ZZ/GEN-SIM-RECO/ZZ_a0z_1.root',
+      'file:/afs/cern.ch/work/a/antoniov/Workspace/Analysis/PPS/CMSSW_6_2_0/src/Workspace/ZZ_a0z_1_GEN-SIM-RECO.root',
+      #'file:/afs/cern.ch/work/a/antoniov/Workspace/Analysis/PPS/CMSSW_6_2_0_save_ref/src/Workspace/ZZ_a0z_1_GEN-SIM-RECO.root',
+    )
 )
 
 #########################
@@ -40,9 +42,12 @@ process.hltFilter.HLTPaths = ['HLT_Mu10_Ele10_CaloIdL_*', 'HLT_Mu8_Ele17_*', 'HL
 process.load("Configuration.StandardSequences.GeometryDB_cff") ## FIXME need to ensure that this is the good one
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 #process.GlobalTag.globaltag = cms.string('START52_V9::All')
-process.GlobalTag.globaltag = cms.string('FT_R_53_V6::All')
+#process.GlobalTag.globaltag = cms.string('FT_R_53_V6::All')
+#process.GlobalTag.globaltag = cms.string('START62_V1::All')
+process.GlobalTag.globaltag = cms.string('POSTLS162_V6::All')
 process.load("Configuration.StandardSequences.MagneticField_cff")
 process.load("TrackingTools.TransientTrack.TransientTrackBuilder_cfi")
+process.load("Geometry.CaloEventSetup.CaloTowerConstituents_cfi")
 
 process.scrapingVeto = cms.EDFilter("FilterOutScraping",
     applyfilter = cms.untracked.bool(True),
@@ -69,10 +74,10 @@ process.muonFilter = cms.EDFilter("CandViewCountFilter",
 ## Look at https://twiki.cern.ch/twiki/bin/view/CMSPublic/SWGuidePATTools#Core_Tools for more information
 
 # PAT Layer 0+1
-process.load("PhysicsTools.PatAlgos.patSequences_cff")
-from Configuration.EventContent.EventContent_cff import *
-from PhysicsTools.PatAlgos.patEventContent_cff import patEventContentNoCleaning, patExtraAodEventContent
-from PhysicsTools.PatAlgos.tools.coreTools import *
+#process.load("PhysicsTools.PatAlgos.patSequences_cff")
+#from Configuration.EventContent.EventContent_cff import *
+#from PhysicsTools.PatAlgos.patEventContent_cff import patEventContentNoCleaning, patExtraAodEventContent
+#from PhysicsTools.PatAlgos.tools.coreTools import *
 
 #
 # rho value for isolation
@@ -80,35 +85,40 @@ from PhysicsTools.PatAlgos.tools.coreTools import *
 from RecoJets.JetProducers.kt4PFJets_cfi import *
 process.kt6PFJetsForIsolation = kt4PFJets.clone( rParam = 0.6, doRhoFastjet = True )
 process.kt6PFJetsForIsolation.Rho_EtaMax = cms.double(2.5)
+
+# Import Reco producers
+#process.load("RecoJets.Configuration.RecoPFJets_cff")
+#process.load("RecoEgamma.Configuration.RecoEgamma_cff")
+
 #
 # Particle flow isolation
 #
-from CommonTools.ParticleFlow.Tools.pfIsolation import setupPFElectronIso, setupPFMuonIso
-process.eleIsoSequence = setupPFElectronIso(process, 'gsfElectrons')
-process.pfiso = cms.Sequence(process.pfParticleSelectionSequence + process.eleIsoSequence)
-process.out = cms.OutputModule("PoolOutputModule",
-    outputCommands = cms.untracked.vstring(
-        'drop *',
-        'keep *_offlinePrimaryVertices*_*_*',
-        'keep *_*Muons*_*_*',
-        'keep *_*Electrons*_*_*',
-        #'keep *_*Photons*_*_*',
-        'keep *_*Jets*_*_*',
-        'keep *_*MET*_*_*',
-        'keep recoPFCandidates_particleFlow_*_*',
-        #*patEventContentNoCleaning
-    ),
-)
+#from CommonTools.ParticleFlow.Tools.pfIsolation import setupPFElectronIso, setupPFMuonIso
+#process.eleIsoSequence = setupPFElectronIso(process, 'gsfElectrons')
+#process.pfiso = cms.Sequence(process.pfParticleSelectionSequence + process.eleIsoSequence)
+#process.out = cms.OutputModule("PoolOutputModule",
+#    outputCommands = cms.untracked.vstring(
+#        'drop *',
+#        'keep *_offlinePrimaryVertices*_*_*',
+#        'keep *_*Muons*_*_*',
+#        'keep *_*Electrons*_*_*',
+#        #'keep *_*Photons*_*_*',
+#        'keep *_*Jets*_*_*',
+#        'keep *_*MET*_*_*',
+#        'keep recoPFCandidates_particleFlow_*_*',
+#        #*patEventContentNoCleaning
+#    ),
+#)
 
 # Particle flow
 from PhysicsTools.PatAlgos.tools.pfTools import *
 postfix = "PFlow"
-jetAlgo="AK5" 
+jetAlgo = "AK5" 
 #usePFBRECO(process,runPFBRECO=True, jetAlgo=jetAlgo, runOnMC=runOnMC, postfix=postfix) 
 usePF2PAT(process,runPF2PAT=True, jetAlgo=jetAlgo, runOnMC=runOnMC, postfix=postfix)
-useGsfElectrons(process,postfix)
-removeCleaning(process)
-removeMCMatching(process, ['All'])
+#useGsfElectrons(process,postfix)
+#removeCleaning(process)
+#removeMCMatching(process, ['All'])
 
 #########################
 #       Analysis        #
@@ -120,21 +130,24 @@ process.ggll.LeptonsType = cms.vstring('Electron', 'Muon')
 #process.ggll.LeptonsType = cms.vstring('Electron')
 process.ggll.RecoVertexLabel = cms.InputTag("offlinePrimaryVertices")
 #process.ggll.GlobalMuonCollectionLabel = cms.untracked.InputTag("muons") # RECO
-#process.ggll.GlobalMuonCollectionLabel = cms.untracked.InputTag("selectedPatMuonsPFlow"), # PAT (particle flow)
-process.ggll.GlobalMuonCollectionLabel = cms.untracked.InputTag("selectedPatMuons") # PAT
+process.ggll.GlobalMuonCollectionLabel = cms.untracked.InputTag("selectedPatMuonsPFlow") # PAT (particle flow)
+#process.ggll.GlobalMuonCollectionLabel = cms.untracked.InputTag("selectedPatMuons") # PAT
 #process.ggll.GlobalEleCollectionLabel = cms.untracked.InputTag("gsfElectrons") # RECO
-#process.ggll.GlobalEleCollectionLabel = cms.untracked.InputTag("selectedPatElectronsPFlow") # PAT (particle flow)
-process.ggll.GlobalEleCollectionLabel = cms.untracked.InputTag("selectedPatElectrons") # PAT
+process.ggll.GlobalEleCollectionLabel = cms.untracked.InputTag("selectedPatElectronsPFlow") # PAT (particle flow)
+#process.ggll.GlobalEleCollectionLabel = cms.untracked.InputTag("selectedPatElectrons") # PAT
 process.ggll.RunOnMC = cms.untracked.bool(runOnMC)
-process.ggll.outfilename = cms.untracked.string('output.root')
+process.ggll.outfilename = cms.untracked.string('output-GammaGammaLeptonLepton.root')
 
+getattr(process,"pfNoElectron"+postfix).enable = True
+
+# Analyzer path
 process.p = cms.Path(
     #process.scrapingVeto+
-    process.kt6PFJetsForIsolation+
-    process.pfiso+
+    #process.kt6PFJetsForIsolation+
+    #process.pfiso+
     process.primaryVertexFilter+
-    process.patDefaultSequence+
-    getattr(process,"patPF2PATSequence"+postfix)+
+    #process.patDefaultSequence+
+    #getattr(process,"patPF2PATSequence"+postfix)+
     process.ggll
 )
-getattr(process,"pfNoElectron"+postfix).enable = True
+
