@@ -5,6 +5,7 @@
 #include <fstream>
 #include <memory>
 #include <map>
+#include <string>
 
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
@@ -242,7 +243,7 @@ class GammaGammaLL : public edm::EDAnalyzer {
       edm::Handle<reco::ConversionCollection> conversions_h;
       edm::Handle<double> rhoIso_h; 
     	
-    	TLorentzVector pair;
+      TLorentzVector pair;
       Double_t dphi;
       
       // Particle Flow
@@ -397,6 +398,54 @@ class GammaGammaLL : public edm::EDAnalyzer {
       Double_t HighestJet_e, HighestJet_eta, HighestJet_phi;
       Double_t SumJet_e;
       Double_t Etmiss, Etmiss_phi, Etmiss_x, Etmiss_y, Etmiss_z, Etmiss_significance;
+
+      //===================================================
+      // PPS  
+      //===================================================
+      //
+      bool accessPPS_;
+      std::string ppsTag_;
+
+      Double_t VertexZPPS;
+      Double_t xiPPSArmF;
+      Double_t xiPPSArmB;
+      Double_t tPPSArmF;
+      Double_t tPPSArmB;
+      Double_t xPPSArmFDet1, yPPSArmFDet1;
+      Double_t xPPSArmBDet1, yPPSArmBDet1;
+      Double_t xPPSArmFDet2, yPPSArmFDet2;
+      Double_t xPPSArmBDet2, yPPSArmBDet2;
+      Double_t xPPSArmFToF, yPPSArmFToF;
+      Double_t xPPSArmBToF, yPPSArmBToF;
+      Int_t stopPPSArmFTrkDet1, stopPPSArmFTrkDet2;
+      Int_t stopPPSArmBTrkDet1, stopPPSArmBTrkDet2;
+      Int_t stopPPSArmBToF, stopPPSArmFToF;
+      std::vector<Double_t> xiPPSArmFInfo;
+      std::vector<Double_t> xiPPSArmBInfo;
+      std::vector<Double_t> tPPSArmFInfo;
+      std::vector<Double_t> tPPSArmBInfo;
+      // Forward Arm: Det1 and Det2
+      std::vector<Double_t> xPPSArmFDet1Info;
+      std::vector<Double_t> yPPSArmFDet1Info;
+      std::vector<Double_t> xPPSArmFDet2Info;
+      std::vector<Double_t> yPPSArmFDet2Info;
+      // Backward Arm: Det1 and Det2
+      std::vector<Double_t> xPPSArmBDet1Info;
+      std::vector<Double_t> yPPSArmBDet1Info;
+      std::vector<Double_t> xPPSArmBDet2Info;
+      std::vector<Double_t> yPPSArmBDet2Info;
+      // Forward and Backward Arms ToF
+      std::vector<Double_t> xPPSArmFToFInfo;
+      std::vector<Double_t> yPPSArmFToFInfo;
+      std::vector<Double_t> xPPSArmBToFInfo;
+      std::vector<Double_t> yPPSArmBToFInfo;
+      std::vector<Double_t> stopPPSArmFToFInfo;
+      std::vector<Double_t> stopPPSArmBToFInfo;
+      std::vector<Double_t> stopPPSArmFTrkDet1Info;
+      std::vector<Double_t> stopPPSArmFTrkDet2Info;
+      std::vector<Double_t> stopPPSArmBTrkDet1Info;
+      std::vector<Double_t> stopPPSArmBTrkDet2Info;
+      
 };
 
 //

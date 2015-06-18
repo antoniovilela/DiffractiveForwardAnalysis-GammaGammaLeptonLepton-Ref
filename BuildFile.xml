@@ -18,6 +18,7 @@
 <use   name="DataFormats/Luminosity"/>
 <use   name="DataFormats/L1GlobalTrigger"/>
 <use   name="DataFormats/L1Trigger"/>
+<use   name="DataFormats/PPSObjects"/>
 <use   name="Geometry/HcalTowerAlgo"/>
 <use   name="Geometry/CaloGeometry"/>
 <use   name="Geometry/Records"/>

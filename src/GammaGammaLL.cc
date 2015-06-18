@@ -37,6 +37,11 @@ const float cut_EE_deltaEta      = 0.007;
 const float cut_EE_HoverE        = 0.025;
 
 #include "DiffractiveForwardAnalysis/GammaGammaLeptonLepton/interface/GammaGammaLL.h"
+#include "DataFormats/PPSObjects/interface/PPSSpectrometer.h"
+#include "DataFormats/PPSObjects/interface/PPSData.h"
+#include "DataFormats/PPSObjects/interface/PPSDetector.h"
+#include "DataFormats/PPSObjects/interface/PPSToF.h"
+
 //
 // constructors and destructor
 //
@@ -119,6 +124,11 @@ GammaGammaLL::GammaGammaLL(const edm::ParameterSet& iConfig)
 
     if(mcPileupFile_ != "" && dataPileupFile_ != "")
        LumiWeights = new edm::LumiReWeighting(mcPileupFile_, dataPileupFile_, mcPileupPath_, dataPileupPath_);
+  }
+
+  if( runOnMC_ ){
+     accessPPS_ = iConfig.getUntrackedParameter<bool>("AccessPPS", true);
+     ppsTag_    = iConfig.getUntrackedParameter<std::string>("PPSTag","PPSReco");
   }
 
 }
@@ -265,7 +275,48 @@ GammaGammaLL::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   
   muonsMomenta.clear();
   electronsMomenta.clear();
-  
+ 
+  // PPS
+  VertexZPPS = -999.;   
+  xiPPSArmF = -999.;
+  xiPPSArmB = -999.;
+  tPPSArmF = -999.;
+  tPPSArmB = -999.;
+  xPPSArmFDet1 = -999.; yPPSArmFDet1 = -999.;
+  xPPSArmBDet1= -999.; yPPSArmBDet1= -999.;
+  xPPSArmFDet2= -999.; yPPSArmFDet2= -999.;
+  xPPSArmBDet2= -999.; yPPSArmBDet2= -999.;
+  xPPSArmFToF= -999.; yPPSArmFToF = -999.;
+  xPPSArmBToF=-999.; yPPSArmBToF = -999.;
+  stopPPSArmFTrkDet1 = -999; stopPPSArmFTrkDet2 = -999;
+  stopPPSArmBTrkDet1 = -999; stopPPSArmBTrkDet2 = -999;
+  stopPPSArmFToF = -999; stopPPSArmBToF = -999;
+  xiPPSArmFInfo.clear();
+  xiPPSArmBInfo.clear();
+  tPPSArmFInfo.clear();
+  tPPSArmBInfo.clear();
+  xPPSArmFDet1Info.clear();
+  yPPSArmFDet1Info.clear();
+  xPPSArmFDet2Info.clear();
+  yPPSArmFDet2Info.clear();
+  xPPSArmBDet1Info.clear();
+  yPPSArmBDet1Info.clear();
+  xPPSArmBDet2Info.clear();
+  yPPSArmBDet2Info.clear();
+  //
+  xPPSArmFToFInfo.clear();
+  yPPSArmFToFInfo.clear();
+  xPPSArmBToFInfo.clear();
+  yPPSArmBToFInfo.clear();
+  stopPPSArmFToFInfo.clear(); 
+  stopPPSArmBToFInfo.clear();
+  stopPPSArmFTrkDet1Info.clear();
+  stopPPSArmFTrkDet2Info.clear();
+  stopPPSArmBTrkDet1Info.clear();
+  stopPPSArmBTrkDet2Info.clear();
+     
+  //================================================================
+ 
   _leptonptmp = new TLorentzVector();
   
   //std::cout << "Passed First init of the variables" << std::endl;
@@ -981,12 +1032,143 @@ GammaGammaLL::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
   //std::cout << "Passed MET" << std::endl;
 
+  //=======================================================
+  // Fill PPS Spectrometer
+  Handle<PPSSpectrometer> ppsSpectrum;
+  iEvent.getByLabel("ppssim",ppsTag_,ppsSpectrum);
+  // Xi and t, ArmF and ArmB
+  if(ppsSpectrum->ArmB.xi.size() > 0){
+    xiPPSArmB = ppsSpectrum->ArmB.xi[0];
+    for (unsigned int k=0;k<ppsSpectrum->ArmB.xi.size();k++){
+      xiPPSArmBInfo.push_back(ppsSpectrum->ArmB.xi[k]);
+      //cout <<"ppsSpectrum->ArmB.xi[k]: " << ppsSpectrum->ArmB.xi[k] << " k: "<< k << endl;
+    }
+  }
+  if(ppsSpectrum->ArmF.xi.size() > 0){
+    xiPPSArmF = ppsSpectrum->ArmF.xi[0];
+    for (unsigned int k=0;k<ppsSpectrum->ArmF.xi.size();k++){
+      xiPPSArmFInfo.push_back(ppsSpectrum->ArmF.xi[k]);
+      //cout <<"ppsSpectrum->ArmF.xi[k]: " << ppsSpectrum->ArmF.xi[k] << " k: "<< k << endl;
+      //cout <<  "xiPPSArmFInfo: " << " k " << k  << " " <<  xiPPSArmFInfo.at(k) << endl;
+    }
+  }
+  if(ppsSpectrum->ArmB.t.size() > 0){
+    tPPSArmB = ppsSpectrum->ArmB.t[0];
+    for (unsigned int k=0;k<ppsSpectrum->ArmB.t.size();k++){
+      tPPSArmBInfo.push_back(ppsSpectrum->ArmB.t[k]);
+      //cout <<"ppsSpectrum->ArmF.xi[k]: " << ppsSpectrum->ArmF.xi[k] << " k: "<< k << endl;
+      //cout <<  "xiPPSArmFInfo: " << " k " << k  << " " <<  xiPPSArmFInfo.at(k) << endl;
+    }
+  }
+  if(ppsSpectrum->ArmF.t.size() > 0){
+    tPPSArmF = ppsSpectrum->ArmF.t[0];
+    for (unsigned int k=0;k<ppsSpectrum->ArmF.t.size();k++){
+      tPPSArmFInfo.push_back(ppsSpectrum->ArmF.t[k]);
+      //cout <<"ppsSpectrum->ArmF.xi[k]: " << ppsSpectrum->ArmF.xi[k] << " k: "<< k << endl;
+      //cout <<  "xiPPSArmFInfo: " << " k " << k  << " " <<  xiPPSArmFInfo.at(k) << endl;
+    }
+  }
+  // ArmF and ArmB, Det1 info (x,y)
+  if(ppsSpectrum->ArmF.TrkDet1.X.size() > 0){
+    xPPSArmFDet1 = ppsSpectrum->ArmF.TrkDet1.X[0];
+    yPPSArmFDet1 = ppsSpectrum->ArmF.TrkDet1.Y[0];
+    for (unsigned int k=0;k<ppsSpectrum->ArmF.TrkDet1.X.size();k++){
+      xPPSArmFDet1Info.push_back(ppsSpectrum->ArmF.TrkDet1.X[k]);
+      yPPSArmFDet1Info.push_back(ppsSpectrum->ArmF.TrkDet1.Y[k]);
+    }
+  }
+  if(ppsSpectrum->ArmB.TrkDet1.X.size() > 0){
+    xPPSArmBDet1 = ppsSpectrum->ArmB.TrkDet1.X[0];
+    yPPSArmBDet1 = ppsSpectrum->ArmB.TrkDet1.Y[0];
+    for (unsigned int k=0;k<ppsSpectrum->ArmB.TrkDet1.X.size();k++){
+      xPPSArmBDet1Info.push_back(ppsSpectrum->ArmB.TrkDet1.X[k]);
+      yPPSArmBDet1Info.push_back(ppsSpectrum->ArmB.TrkDet1.Y[k]);
+    }
+  }
+  // ArmF and ArmB, Det2 info (x,y)
+  if(ppsSpectrum->ArmF.TrkDet2.X.size() > 0){
+    xPPSArmFDet2 = ppsSpectrum->ArmF.TrkDet2.X[0];
+    yPPSArmFDet2 = ppsSpectrum->ArmF.TrkDet2.Y[0];
+    for (unsigned int k=0;k<ppsSpectrum->ArmF.TrkDet2.X.size();k++){
+      xPPSArmFDet2Info.push_back(ppsSpectrum->ArmF.TrkDet2.X[k]);
+      yPPSArmFDet2Info.push_back(ppsSpectrum->ArmF.TrkDet2.Y[k]);
+    }
+  }
+  if(ppsSpectrum->ArmB.TrkDet2.X.size() > 0){
+    xPPSArmBDet2 = ppsSpectrum->ArmB.TrkDet2.X[0];
+    yPPSArmBDet2 = ppsSpectrum->ArmB.TrkDet2.Y[0];
+    for (unsigned int k=0;k<ppsSpectrum->ArmB.TrkDet2.X.size();k++){
+      xPPSArmBDet2Info.push_back(ppsSpectrum->ArmB.TrkDet2.X[k]);
+      yPPSArmBDet2Info.push_back(ppsSpectrum->ArmB.TrkDet2.Y[k]);
+    }
+  }
+  // ArmF and ArmB, ToF info (x,y)
+  if(ppsSpectrum->ArmF.ToFDet.X.size() > 0){
+    xPPSArmFToF = ppsSpectrum->ArmF.ToFDet.X[0];
+    yPPSArmFToF = ppsSpectrum->ArmF.ToFDet.Y[0];
+    for (unsigned int k=0;k<ppsSpectrum->ArmF.ToFDet.X.size();k++){
+      xPPSArmFToFInfo.push_back(ppsSpectrum->ArmF.ToFDet.X[k]);
+      yPPSArmFToFInfo.push_back(ppsSpectrum->ArmF.ToFDet.Y[k]);    
+    }
+  }
+  if(ppsSpectrum->ArmB.ToFDet.X.size() > 0){
+    xPPSArmBToF = ppsSpectrum->ArmB.ToFDet.X[0];
+    yPPSArmBToF = ppsSpectrum->ArmB.ToFDet.Y[0];
+    for (unsigned int k=0;k<ppsSpectrum->ArmB.ToFDet.X.size();k++){
+      xPPSArmBToFInfo.push_back(ppsSpectrum->ArmB.ToFDet.X[k]);
+      yPPSArmBToFInfo.push_back(ppsSpectrum->ArmB.ToFDet.Y[k]);
+    }
+  }
+  // PPS Vertex
+  if(ppsSpectrum->vtxZ.size() > 0){
+    VertexZPPS = ppsSpectrum->vtxZ[0];
+  }
+  // ArmF and ArmB, HasStopped Info
+  if(ppsSpectrum->ArmF.ToFDet.HasStopped.size() > 0){
+    stopPPSArmFToF = ppsSpectrum->ArmF.ToFDet.HasStopped[0];
+    for (unsigned int k=0;k<ppsSpectrum->ArmF.ToFDet.HasStopped.size();k++){
+      stopPPSArmFToFInfo.push_back(ppsSpectrum->ArmF.ToFDet.HasStopped[k]);
+    } 
+  }
+  if(ppsSpectrum->ArmB.ToFDet.HasStopped.size() > 0){
+    stopPPSArmBToF = ppsSpectrum->ArmB.ToFDet.HasStopped[0];
+    for (unsigned int k=0;k<ppsSpectrum->ArmB.ToFDet.HasStopped.size();k++){
+      stopPPSArmBToFInfo.push_back(ppsSpectrum->ArmB.ToFDet.HasStopped[k]);
+    }
+  }
+  if(ppsSpectrum->ArmF.TrkDet1.HasStopped.size() > 0){
+    stopPPSArmFTrkDet1 = ppsSpectrum->ArmF.TrkDet1.HasStopped[0];
+    for (unsigned int k=0;k<ppsSpectrum->ArmF.TrkDet1.HasStopped.size();k++){
+      stopPPSArmFTrkDet1Info.push_back(ppsSpectrum->ArmF.TrkDet1.HasStopped[k]);
+    }
+  }
+  if(ppsSpectrum->ArmB.TrkDet1.HasStopped.size() > 0){
+    stopPPSArmBTrkDet1 = ppsSpectrum->ArmB.TrkDet1.HasStopped[0];
+    for (unsigned int k=0;k<ppsSpectrum->ArmB.TrkDet1.HasStopped.size();k++){
+      stopPPSArmBTrkDet1Info.push_back(ppsSpectrum->ArmB.TrkDet1.HasStopped[k]);
+    }
+  }
+  if(ppsSpectrum->ArmF.TrkDet2.HasStopped.size() > 0){
+    stopPPSArmFTrkDet2 = ppsSpectrum->ArmF.TrkDet2.HasStopped[0];
+    for (unsigned int k=0;k<ppsSpectrum->ArmF.TrkDet2.HasStopped.size();k++){
+      stopPPSArmFTrkDet2Info.push_back(ppsSpectrum->ArmF.TrkDet2.HasStopped[k]);
+    }
+  }
+  if(ppsSpectrum->ArmB.TrkDet2.HasStopped.size() > 0){
+    stopPPSArmBTrkDet2 = ppsSpectrum->ArmB.TrkDet2.HasStopped[0];
+    for (unsigned int k=0;k<ppsSpectrum->ArmB.TrkDet2.HasStopped.size();k++){
+      stopPPSArmBTrkDet2Info.push_back(ppsSpectrum->ArmB.TrkDet2.HasStopped[k]);
+    }
+  }
+
+  //=======================================================
+  //
   if (foundPairInEvent) {
     if (printCandidates_) {
       std::cout << "Event " << Run << ":" << EventNum << " has " << nCandidatesInEvent << " leptons pair(s) candidate(s) (vertex mult. : " << nPrimVertexCand << ")" << std::endl;
     }
-    tree_->Fill();
-  } else tree_->Fill();
+  }
+  tree_->Fill();
 }
 
 
@@ -1231,6 +1413,56 @@ GammaGammaLL::beginJob()
   tree_->Branch("Weight", &Weight, "Weight/D");
   tree_->Branch("PUWeightTrue", &PUWeightTrue, "PUWeightTrue/D");
 
+  // PPS fast simulation
+  if( runOnMC_ && accessPPS_ ){
+     tree_->Branch("VertexZPPS",&VertexZPPS,"VertexZPPS/D");
+     tree_->Branch("xiPPSArmB",&xiPPSArmB,"xiPPSArmB/D");
+     tree_->Branch("xiPPSArmF",&xiPPSArmF,"xiPPSArmF/D");
+     tree_->Branch("tPPSArmB",&tPPSArmB,"tPPSArmB/D");
+     tree_->Branch("tPPSArmF",&tPPSArmF,"tPPSArmF/D");
+     tree_->Branch("xPPSArmBDet1",&xPPSArmBDet1,"xPPSArmBDet1/D");
+     tree_->Branch("xPPSArmFDet1",&xPPSArmFDet1,"xPPSArmFDet1/D");
+     tree_->Branch("yPPSArmBDet1",&yPPSArmBDet1,"yPPSArmBDet1/D");
+     tree_->Branch("yPPSArmFDet1",&yPPSArmFDet1,"yPPSArmFDet1/D");
+     tree_->Branch("xPPSArmBDet2",&xPPSArmBDet2,"xPPSArmBDet2/D");
+     tree_->Branch("xPPSArmFDet2",&xPPSArmFDet2,"xPPSArmFDet2/D");
+     tree_->Branch("yPPSArmBDet2",&yPPSArmBDet2,"yPPSArmBDet2/D");
+     tree_->Branch("yPPSArmFDet2",&yPPSArmFDet2,"yPPSArmFDet2/D");
+     tree_->Branch("xPPSArmFToF",&xPPSArmFToF,"xPPSArmFToF/D");
+     tree_->Branch("yPPSArmFToF",&yPPSArmFToF,"yPPSArmFToF/D");
+     tree_->Branch("xPPSArmBToF",&xPPSArmBToF,"xPPSArmBToF/D");
+     tree_->Branch("yPPSArmBToF",&yPPSArmBToF,"yPPSArmBToF/D");
+     tree_->Branch("stopPPSArmFTrkDet1",&stopPPSArmFTrkDet1,"stopPPSArmFTrkDet1/I");
+     tree_->Branch("stopPPSArmFTrkDet2",&stopPPSArmFTrkDet2,"stopPPSArmFTrkDet2/I");
+     tree_->Branch("stopPPSArmBTrkDet1",&stopPPSArmBTrkDet1,"stopPPSArmBTrkDet1/I");
+     tree_->Branch("stopPPSArmBTrkDet2",&stopPPSArmBTrkDet2,"stopPPSArmBTrkDet2/I");
+     tree_->Branch("stopPPSArmFToF",&stopPPSArmFToF,"stopPPSArmFToF/I");
+     tree_->Branch("stopPPSArmBToF",&stopPPSArmBToF,"stopPPSArmBToF/I");
+
+     tree_->Branch("xiPPSArmFInfo",&xiPPSArmFInfo);
+     tree_->Branch("xiPPSArmBInfo",&xiPPSArmBInfo);
+     tree_->Branch("tPPSArmFInfo",&tPPSArmFInfo);
+     tree_->Branch("tPPSArmBInfo",&tPPSArmBInfo);
+     tree_->Branch("xPPSArmFDet1Info",&xPPSArmFDet1Info);
+     tree_->Branch("yPPSArmFDet1Info",&yPPSArmFDet1Info);
+     tree_->Branch("xPPSArmFDet2Info",&xPPSArmFDet2Info);
+     tree_->Branch("yPPSArmFDet2Info",&yPPSArmFDet2Info);
+     tree_->Branch("xPPSArmBDet1Info",&xPPSArmBDet1Info);
+     tree_->Branch("yPPSArmBDet1Info",&yPPSArmBDet1Info);
+     tree_->Branch("xPPSArmBDet2Info",&xPPSArmBDet2Info);
+     tree_->Branch("yPPSArmBDet2Info",&yPPSArmBDet2Info);
+     tree_->Branch("xPPSArmFToFInfo",&xPPSArmFToFInfo);
+     tree_->Branch("yPPSArmFToFInfo",&yPPSArmFToFInfo);
+     tree_->Branch("xPPSArmBToFInfo",&xPPSArmBToFInfo);
+     tree_->Branch("yPPSArmBToFInfo",&yPPSArmBToFInfo);
+     tree_->Branch("stopPPSArmFToFInfo",&stopPPSArmFToFInfo);
+     tree_->Branch("stopPPSArmBToFInfo",&stopPPSArmBToFInfo);
+     tree_->Branch("stopPPSArmFTrkDet1Info",&stopPPSArmFTrkDet1Info);
+     tree_->Branch("stopPPSArmFTrkDet2Info",&stopPPSArmFTrkDet2Info);
+     tree_->Branch("stopPPSArmBTrkDet1Info",&stopPPSArmBTrkDet1Info);
+     tree_->Branch("stopPPSArmBTrkDet2Info",&stopPPSArmBTrkDet2Info);
+  }
+   
   nCandidates = 0;
 }
 
